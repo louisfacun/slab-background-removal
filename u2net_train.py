@@ -191,7 +191,7 @@ if resume:
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     epoch_start = checkpoint['epoch']
-    avg_val_loss = checkpoint['loss']
+    avg_iou = checkpoint['avg_iou']
     print(f"Resuming from epoch {epoch_start} with val loss {avg_val_loss:.3f}")
     
 # ------- 5. training process --------
