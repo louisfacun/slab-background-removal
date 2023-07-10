@@ -250,9 +250,9 @@ for epoch in range(epoch_start, epoch_num):
 
             d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
             loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
-            running_loss += loss.data.item()
+            #running_loss += loss.data.item()
             total_iou += loss.data.item()
-            running_tar_loss += loss2.data.item()
+            #running_tar_loss += loss2.data.item()
 
             # CONVERT LABEL TO BINARY MASK (NP)
             # actual = labels_v.squeeze()
