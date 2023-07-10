@@ -45,13 +45,15 @@ def calculate_iou(mask1, mask2):
 bce_loss = nn.BCELoss(size_average=True)
 
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
-    loss0 = F.binary_cross_entropy_with_logits(d0, labels_v)
-    loss1 = F.binary_cross_entropy_with_logits(d1, labels_v)
-    loss2 = F.binary_cross_entropy_with_logits(d2, labels_v)
-    loss3 = F.binary_cross_entropy_with_logits(d3, labels_v)
-    loss4 = F.binary_cross_entropy_with_logits(d4, labels_v)
-    loss5 = F.binary_cross_entropy_with_logits(d5, labels_v)
-    loss6 = F.binary_cross_entropy_with_logits(d6, labels_v)
+    criterion = nn.BCEWithLogitsLoss()
+
+    loss0 = criterion(d0, labels_v)
+    loss1 = criterion(d1, labels_v)
+    loss2 = criterion(d2, labels_v)
+    loss3 = criterion(d3, labels_v)
+    loss4 = criterion(d4, labels_v)
+    loss5 = criterion(d5, labels_v)
+    loss6 = criterion(d6, labels_v)
 
     loss = loss0 + loss1 + loss2 + loss3 + loss4 + loss5 + loss6
 
