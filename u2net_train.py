@@ -223,7 +223,7 @@ for epoch in range(epoch_start, epoch_num):
         scaler.step(optimizer)
         scaler.update()
         running_loss += loss.data.item()
-        train_loader.set_postfix({'Loss': running_loss / num_iterations})
+        train_loader.set_postfix({'Loss': loss.data.item()})
         del d0, d1, d2, d3, d4, d5, d6, loss2, loss
 
     avg_loss = running_loss / num_iterations
@@ -249,7 +249,7 @@ for epoch in range(epoch_start, epoch_num):
             d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
             loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
             total_val_loss += loss.data.item()
-            val_loader.set_postfix({'Loss': total_val_loss / (i+1)})
+            val_loader.set_postfix({'Loss': loss.data.item()})
             del d0, d1, d2, d3, d4, d5, d6, loss2, loss 
 
     avg_val_loss = total_val_loss / val_num
