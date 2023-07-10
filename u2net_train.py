@@ -233,7 +233,7 @@ for epoch in range(epoch_start, epoch_num):
 
     # RUN VALIDATION
     net.eval()
-    total_iou = 0
+    total_iou = 100000
 
     with torch.no_grad():
         for i, data in enumerate(tqdm(val_loader)):
@@ -249,34 +249,33 @@ for epoch in range(epoch_start, epoch_num):
                 labels_v = Variable(labels, requires_grad=False)
 
             d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
-            # loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
-            # running_loss += loss.data.item()
-            # total_val_loss += loss.data.item()
-            # running_tar_loss += loss2.data.item()
+            loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
+            running_loss += loss.data.item()
+            total_iou += loss.data.item()
+            running_tar_loss += loss2.data.item()
 
             # CONVERT LABEL TO BINARY MASK (NP)
-            actual = labels_v.squeeze()
-            actual = actual.cpu().data.numpy()
-            actual = np.where(actual > 0.6, 1, 0).astype('bool')
+            # actual = labels_v.squeeze()
+            # actual = actual.cpu().data.numpy()
+            # actual = np.where(actual > 0.6, 1, 0).astype('bool')
 
-            # CONVERT PREDICTION TO BINARY MASK (NP)
-            predict = d0[:,0,:,:]
-            predict = normPRED(predict)
-            predict = predict.squeeze()
-            predict = predict.cpu().data.numpy()
-            predict = np.where(predict > 0.6, 1, 0).astype('bool')
+            # # CONVERT PREDICTION TO BINARY MASK (NP)
+            # predict = d0[:,0,:,:]
+            # predict = normPRED(predict)
+            # predict = predict.squeeze()
+            # predict = predict.cpu().data.numpy()
+            # predict = np.where(predict > 0.6, 1, 0).astype('bool')
 
-            iou = calculate_iou(actual, predict)
-            total_iou += iou
+            # iou = calculate_iou(actual, predict)
+            # total_iou += iou
 
-            del d0, d1, d2, d3, d4, d5, d6, actual, predict, iou#, loss2, loss
-    
+            del d0, d1, d2, d3, d4, d5, d6, loss2, loss#, actual, predict, iou#, 
     avg_iou = total_iou / val_num
 
     print(f"avg iou: {avg_iou:.3f}")
     
     # SAVE BEST MODEL
-    if avg_iou > max_iou:
+    if avg_iou < max_iou:
         max_iou = avg_iou
         #PATH = model_dir + model_name+"_best_bce_itr_%d_train_%3f_tar_%3f.pth" % (ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val)
         PATH=model_dir + model_name+"_best.pth" #_{avg_val_loss}
