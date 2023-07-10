@@ -48,7 +48,8 @@ def multi_iou(d0, d1, d2, d3, d4, d5, d6, labels_v):
     pass
 
 def make_binary(d):
-    tensor = torch.where(d > 0.6, torch.tensor(1), torch.tensor(0))
+    tensor = torch.where(d > 0.6, torch.tensor(1, dtype=torch.float32), torch.tensor(0, dtype=torch.float32))
+
     return tensor
 
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
