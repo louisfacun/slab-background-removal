@@ -21,7 +21,7 @@ from data_loader import ToTensor
 from data_loader import ToTensorLab
 from data_loader import SalObjDataset
 from data_loader import Augment
-
+from torch.cuda import amp
 from model import U2NET
 from model import U2NETP
 from tqdm import tqdm
@@ -187,6 +187,9 @@ running_loss = 0.0
 running_tar_loss = 0.0
 num_iterations = len(train_loader) 
 
+
+scaler = amp.GradScaler(enabled=True)
+
 for epoch in range(epoch_start, epoch_num):
     print('Epoch {}/{}'.format(epoch+1, epoch_num))
 
@@ -205,13 +208,16 @@ for epoch in range(epoch_start, epoch_num):
             inputs_v = Variable(inputs, requires_grad=False)
             labels_v = Variable(labels, requires_grad=False)
 
-        optimizer.zero_grad()
+        #optimizer.zero_grad()
         d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
         _, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
 
-        loss.backward()
-        optimizer.step()
-
+        #loss.backward()
+        scaler.scale(loss).backward()
+        #optimizer.step()
+        scaler.step(optimizer)
+        optimizer.zero_grad()
+        
         running_loss += loss.data.item()
         train_loader.set_postfix({'Loss': running_loss / num_iterations})
         del d0, d1, d2, d3, d4, d5, d6, _, loss
