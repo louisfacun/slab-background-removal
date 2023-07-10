@@ -207,10 +207,10 @@ for epoch in range(epoch_start, epoch_num):
         else:
             inputs_v = Variable(inputs, requires_grad=False)
             labels_v = Variable(labels, requires_grad=False)
-            
+
         optimizer.zero_grad()
         d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
-        _, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
+        loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
 
         loss.backward()
         optimizer.step()
