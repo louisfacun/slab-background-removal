@@ -521,5 +521,5 @@ class U2NETP(nn.Module):
         d6 = _upsample_like(d6,d1)
 
         d0 = self.outconv(torch.cat((d1,d2,d3,d4,d5,d6),1))
-
+        
         return F.sigmoid(d0), F.sigmoid(d1), F.sigmoid(d2), F.sigmoid(d3), F.sigmoid(d4), F.sigmoid(d5), F.sigmoid(d6)

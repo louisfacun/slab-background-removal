@@ -195,7 +195,7 @@ if resume:
 # ------- 5. training process --------
 print("---start training...")
 
-max_iou = 0
+max_iou = 10000
 
 for epoch in range(epoch_start, epoch_num):
     print('Epoch {}/{}'.format(epoch+1, epoch_num))
@@ -234,7 +234,7 @@ for epoch in range(epoch_start, epoch_num):
 
     # RUN VALIDATION
     net.eval()
-    total_iou = 100000
+    total_iou = 0
 
     with torch.no_grad():
         for i, data in enumerate(tqdm(val_loader)):
