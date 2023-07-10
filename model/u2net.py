@@ -521,15 +521,5 @@ class U2NETP(nn.Module):
         d6 = _upsample_like(d6,d1)
 
         d0 = self.outconv(torch.cat((d1,d2,d3,d4,d5,d6),1))
-        
-        # return F.sigmoid(d0), F.sigmoid(d1), F.sigmoid(d2), F.sigmoid(d3), F.sigmoid(d4), F.sigmoid(d5), F.sigmoid(d6)
-        threshold = 0.6
-        d0_binary = (torch.sigmoid(d0) > threshold).float()
-        d1_binary = (torch.sigmoid(d1) > threshold).float()
-        d2_binary = (torch.sigmoid(d2) > threshold).float()
-        d3_binary = (torch.sigmoid(d3) > threshold).float()
-        d4_binary = (torch.sigmoid(d4) > threshold).float()
-        d5_binary = (torch.sigmoid(d5) > threshold).float()
-        d6_binary = (torch.sigmoid(d6) > threshold).float()
 
-        return d0_binary, d1_binary, d2_binary, d3_binary, d4_binary, d5_binary, d6_binary
+        return F.sigmoid(d0), F.sigmoid(d1), F.sigmoid(d2), F.sigmoid(d3), F.sigmoid(d4), F.sigmoid(d5), F.sigmoid(d6)

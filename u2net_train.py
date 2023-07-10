@@ -44,23 +44,7 @@ def calculate_iou(mask1, mask2):
 # ------- 1. define loss function --------
 bce_loss = nn.BCELoss(size_average=True)
 
-def multi_iou(d0, d1, d2, d3, d4, d5, d6, labels_v):
-    pass
-
-def make_binary(d):
-    tensor = torch.where(d > 0.6, torch.tensor(1, dtype=torch.float32), torch.tensor(0, dtype=torch.float32))
-    tensor.requires_grad_(True)
-    return tensor
-
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
-	# loss0 = bce_loss(make_binary(d0),labels_v)
-	# loss1 = bce_loss(make_binary(d1),labels_v)
-	# loss2 = bce_loss(make_binary(d2),labels_v)
-	# loss3 = bce_loss(make_binary(d3),labels_v)
-	# loss4 = bce_loss(make_binary(d4),labels_v)
-	# loss5 = bce_loss(make_binary(d5),labels_v)
-	# loss6 = bce_loss(make_binary(d6),labels_v)
-
     loss0 = bce_loss(d0,labels_v)
     loss1 = bce_loss(d1,labels_v)
     loss2 = bce_loss(d2,labels_v)
@@ -75,7 +59,6 @@ def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
 
 
 # ------- 2. set the directory of training dataset --------
-
 model_name = 'u2net' #'u2netp'
 
 data_dir = os.path.join(os.getcwd(), 'train_data' + os.sep)
@@ -183,10 +166,6 @@ print("---define optimizer...")
 
 optimizer = optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
 
-ite_num = 0
-running_loss = 0.0
-running_tar_loss = 0.0
-ite_num4val = 0
 epoch_start = 0
 
 if resume:
@@ -195,24 +174,25 @@ if resume:
     checkpoint = torch.load('best.pth')
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    epoch_start = checkpoint['epoch']
-    avg_iou = checkpoint['avg_iou']
-    print(f"Resuming from epoch {epoch_start} with avg iou {avg_iou:.3f}")
+    #epoch_start = checkpoint['epoch']
+    avg_val_loss = checkpoint['avg_val_loss']
+    print(f"Resuming from epoch {epoch_start} with avg loss {avg_val_loss:.3f}")
     
 # ------- 5. training process --------
 print("---start training...")
 
-max_iou = 10000
+best_avg_val_loss = 0
+
+running_loss = 0.0
+running_tar_loss = 0.0
+num_iterations = len(train_loader) 
 
 for epoch in range(epoch_start, epoch_num):
     print('Epoch {}/{}'.format(epoch+1, epoch_num))
+
     # TRAINING
     net.train()
-
     for i, data in enumerate(tqdm(train_loader)):
-        ite_num = ite_num + 1
-        ite_num4val = ite_num4val + 1
-
         inputs, labels = data['image'], data['label']
         inputs = inputs.type(torch.FloatTensor)
         labels = labels.type(torch.FloatTensor)
@@ -226,23 +206,22 @@ for epoch in range(epoch_start, epoch_num):
 
         optimizer.zero_grad()
         d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
-        loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
-        
+        _, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
 
         loss.backward()
         optimizer.step()
 
         running_loss += loss.data.item()
-        running_tar_loss += loss2.data.item()
-        del d0, d1, d2, d3, d4, d5, d6, loss2, loss
 
-    print("\n[Epoch: %3d/%3d, batch: %5d/%5d, ite: %d train loss: %3f, tar: %3f " % (
-    epoch + 1, epoch_num, (i + 1) * batch_size_train, train_num, ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val))
+        del d0, d1, d2, d3, d4, d5, d6, _, loss
+
+    avg_loss = running_loss / num_iterations
+    avg_tar_loss = running_tar_loss / num_iterations
+    print(f'Epoch: {epoch+1} | Average Loss: {avg_loss:.4f} | Average Target Loss: {avg_tar_loss:.4f}')
 
     # RUN VALIDATION
     net.eval()
-    total_iou = 0
-
+    total_val_loss = 0
     with torch.no_grad():
         for i, data in enumerate(tqdm(val_loader)):
             inputs, labels = data['image'], data['label']
@@ -258,42 +237,24 @@ for epoch in range(epoch_start, epoch_num):
 
             d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
             loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
-            #running_loss += loss.data.item()
-            total_iou += loss.data.item()
-            #running_tar_loss += loss2.data.item()
+            total_val_loss += loss.data.item()
+            del d0, d1, d2, d3, d4, d5, d6, loss2, loss 
 
-            # CONVERT LABEL TO BINARY MASK (NP)
-            # actual = labels_v.squeeze()
-            # actual = actual.cpu().data.numpy()
-            # actual = np.where(actual > 0.6, 1, 0).astype('bool')
+    avg_val_loss = total_val_loss / val_num
+    print(f"avg val loss: {avg_val_loss:.3f}")
 
-            # # CONVERT PREDICTION TO BINARY MASK (NP)
-            # predict = d0[:,0,:,:]
-            # predict = normPRED(predict)
-            # predict = predict.squeeze()
-            # predict = predict.cpu().data.numpy()
-            # predict = np.where(predict > 0.6, 1, 0).astype('bool')
-
-            # iou = calculate_iou(actual, predict)
-            # total_iou += iou
-
-            del d0, d1, d2, d3, d4, d5, d6, loss2, loss#, actual, predict, iou#, 
-    avg_iou = total_iou / val_num
-
-    print(f"avg iou: {avg_iou:.3f}")
-    
     # SAVE BEST MODEL
-    if avg_iou < max_iou:
-        max_iou = avg_iou
+    if avg_val_loss < best_avg_val_loss:
+        best_avg_val_loss = avg_val_loss
         #PATH = model_dir + model_name+"_best_bce_itr_%d_train_%3f_tar_%3f.pth" % (ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val)
         PATH=model_dir + model_name+"_best.pth" #_{avg_val_loss}
         torch.save({
             'epoch': epoch,
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            'avg_iou': avg_iou,
+            'avg_val_loss': avg_val_loss,
         }, PATH)
-        print(f"saved best model: {avg_iou}!")
+        print(f"saved best model: {avg_val_loss}!")
     
     # SAVE LAST MODEL 
     #PATH = model_dir + model_name+"_last_bce_itr_%d_train_%3f_tar_%3f.pth" % (ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val)
@@ -302,15 +263,7 @@ for epoch in range(epoch_start, epoch_num):
         'epoch': epoch,
         'model_state_dict': net.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-        'avg_iou': avg_iou,
+        'avg_val_loss': avg_val_loss,
     }, PATH)
     print("saved last model")
-
-    # if ite_num % save_frq == 0:
-    #     torch.save(net.state_dict(), model_dir + model_name+"_bce_itr_%d_train_%3f_tar_%3f.pth" % (ite_num, running_loss / ite_num4val, running_tar_loss / ite_num4val))
-    #     #torch.save(optimizer.state_dict(),, "some_file_name"))
-    #     running_loss = 0.0
-    #     running_tar_loss = 0.0
-    #     net.train()  # resume train
-    #     ite_num4val = 0
 
