@@ -181,7 +181,7 @@ if resume:
 # ------- 5. training process --------
 print("---start training...")
 
-best_avg_val_loss = 0
+best_avg_val_loss = 10000
 
 running_loss = 0.0
 running_tar_loss = 0.0
@@ -192,7 +192,8 @@ for epoch in range(epoch_start, epoch_num):
 
     # TRAINING
     net.train()
-    for i, data in enumerate(tqdm(train_loader)):
+    train_loader = tqdm(train_loader, total=num_iterations)
+    for i, data in enumerate(train_loader):
         inputs, labels = data['image'], data['label']
         inputs = inputs.type(torch.FloatTensor)
         labels = labels.type(torch.FloatTensor)
@@ -212,18 +213,18 @@ for epoch in range(epoch_start, epoch_num):
         optimizer.step()
 
         running_loss += loss.data.item()
-
+        train_loader.set_postfix({'Loss': running_loss / (i+1)})
         del d0, d1, d2, d3, d4, d5, d6, _, loss
 
     avg_loss = running_loss / num_iterations
-    avg_tar_loss = running_tar_loss / num_iterations
-    print(f'Epoch: {epoch+1} | Average Loss: {avg_loss:.4f} | Average Target Loss: {avg_tar_loss:.4f}')
+    print(f'Epoch: {epoch+1} | Average Training Loss: {avg_loss:.4f}')
 
     # RUN VALIDATION
     net.eval()
     total_val_loss = 0
+    val_loader = tqdm(val_loader, total=val_num)
     with torch.no_grad():
-        for i, data in enumerate(tqdm(val_loader)):
+        for i, data in enumerate(val_loader):
             inputs, labels = data['image'], data['label']
             inputs = inputs.type(torch.FloatTensor)
             labels = labels.type(torch.FloatTensor)
@@ -238,6 +239,7 @@ for epoch in range(epoch_start, epoch_num):
             d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
             loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
             total_val_loss += loss.data.item()
+            val_loader.set_postfix({'Loss': total_val_loss / (i+1)})
             del d0, d1, d2, d3, d4, d5, d6, loss2, loss 
 
     avg_val_loss = total_val_loss / val_num
