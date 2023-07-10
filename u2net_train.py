@@ -222,7 +222,7 @@ for epoch in range(epoch_start, epoch_num):
         scaler.update()
         running_loss += loss.data.item()
         train_loader.set_postfix({'Loss': running_loss / num_iterations})
-        del d0, d1, d2, d3, d4, d5, d6, _, loss
+        del d0, d1, d2, d3, d4, d5, d6, loss2, loss
 
     avg_loss = running_loss / num_iterations
     print(f'Epoch: {epoch+1} | Average Training Loss: {avg_loss:.4f}')
