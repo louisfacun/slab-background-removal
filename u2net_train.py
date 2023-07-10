@@ -190,7 +190,7 @@ running_loss = 0.0
 running_tar_loss = 0.0
 num_iterations = len(train_loader) 
 
-torch.backends.cudnn.benchmark = True
+#torch.backends.cudnn.benchmark = True
 for epoch in range(epoch_start, epoch_num):
     print('Epoch {}/{}'.format(epoch+1, epoch_num))
 
