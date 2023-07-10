@@ -174,8 +174,8 @@ if resume:
     checkpoint = torch.load('best.pth')
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    #epoch_start = checkpoint['epoch']
-    #avg_val_loss = checkpoint['avg_val_loss']
+    epoch_start = checkpoint['epoch']
+    avg_val_loss = checkpoint['avg_val_loss']
     #print(f"Resuming from epoch {epoch_start} with avg loss {avg_val_loss:.3f}")
     
 # ------- 5. training process --------
@@ -213,7 +213,7 @@ for epoch in range(epoch_start, epoch_num):
         optimizer.step()
 
         running_loss += loss.data.item()
-        train_loader.set_postfix({'Loss': running_loss / (i+1)})
+        train_loader.set_postfix({'Loss': running_loss / num_iterations})
         del d0, d1, d2, d3, d4, d5, d6, _, loss
 
     avg_loss = running_loss / num_iterations
