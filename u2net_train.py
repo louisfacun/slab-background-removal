@@ -47,13 +47,13 @@ bce_loss = nn.BCELoss(size_average=True)
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
     criterion = nn.BCEWithLogitsLoss()
 
-    loss0 = criterion(d0, labels_v)
-    loss1 = criterion(d1, labels_v)
-    loss2 = criterion(d2, labels_v)
-    loss3 = criterion(d3, labels_v)
-    loss4 = criterion(d4, labels_v)
-    loss5 = criterion(d5, labels_v)
-    loss6 = criterion(d6, labels_v)
+    loss0 = bce_loss(d0, labels_v)
+    loss1 = bce_loss(d1, labels_v)
+    loss2 = bce_loss(d2, labels_v)
+    loss3 = bce_loss(d3, labels_v)
+    loss4 = bce_loss(d4, labels_v)
+    loss5 = bce_loss(d5, labels_v)
+    loss6 = bce_loss(d6, labels_v)
 
     loss = loss0 + loss1 + loss2 + loss3 + loss4 + loss5 + loss6
 
@@ -189,7 +189,7 @@ running_loss = 0.0
 running_tar_loss = 0.0
 num_iterations = len(train_loader) 
 
-scaler = GradScaler()
+#scaler = GradScaler()
 for epoch in range(epoch_start, epoch_num):
     print('Epoch {}/{}'.format(epoch+1, epoch_num))
 
@@ -207,21 +207,20 @@ for epoch in range(epoch_start, epoch_num):
         else:
             inputs_v = Variable(inputs, requires_grad=False)
             labels_v = Variable(labels, requires_grad=False)
-
+            
         optimizer.zero_grad()
-        #optimizer.zero_grad()
-        # d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
-        # _, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
+        d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
+        _, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
 
-        # loss.backward()
-        # optimizer.step()
-        with autocast():
-            d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
-            loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
+        loss.backward()
+        optimizer.step()
+        # with autocast():
+        #     d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
+        #     loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
 
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
+        # scaler.scale(loss).backward()
+        # scaler.step(optimizer)
+        # scaler.update()
         running_loss += loss.data.item()
         train_loader.set_postfix({'Loss': loss.data.item()})
         del d0, d1, d2, d3, d4, d5, d6, loss2, loss
