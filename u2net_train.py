@@ -61,7 +61,7 @@ def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
 # ------- 2. set the directory of training dataset --------
 model_name = 'u2net' #'u2netp'
 
-data_dir = os.path.join(os.getcwd(), 'train_data' + os.sep)
+data_dir = os.path.join(os.getcwd(), 'train_data_orig' + os.sep)
 tra_image_dir = os.path.join('JUTS', 'images' + os.sep)
 tra_label_dir = os.path.join('JUTS', 'masks' + os.sep)
 
@@ -175,8 +175,8 @@ if resume:
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     #epoch_start = checkpoint['epoch']
-    avg_val_loss = checkpoint['avg_val_loss']
-    print(f"Resuming from epoch {epoch_start} with avg loss {avg_val_loss:.3f}")
+    #avg_val_loss = checkpoint['avg_val_loss']
+    #print(f"Resuming from epoch {epoch_start} with avg loss {avg_val_loss:.3f}")
     
 # ------- 5. training process --------
 print("---start training...")
