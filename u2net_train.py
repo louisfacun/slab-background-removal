@@ -45,16 +45,23 @@ def calculate_iou(mask1, mask2):
 bce_loss = nn.BCELoss(size_average=True)
 
 def multi_iou(d0, d1, d2, d3, d4, d5, d6, labels_v):
-     pass
+    pass
+
+def make_binary(d):
+    array = d.numpy()
+    binary = np.where(array > 0.6, 1,0).astype('float32')
+    binary = binary.reshape((1, 1, 572, 572))
+    tensor = torch.from_numpy(binary)
+    return tensor
 
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
-	loss0 = bce_loss(d0,labels_v)
-	loss1 = bce_loss(d1,labels_v)
-	loss2 = bce_loss(d2,labels_v)
-	loss3 = bce_loss(d3,labels_v)
-	loss4 = bce_loss(d4,labels_v)
-	loss5 = bce_loss(d5,labels_v)
-	loss6 = bce_loss(d6,labels_v)
+	loss0 = bce_loss(make_binary(d0),labels_v)
+	loss1 = bce_loss(make_binary(d1),labels_v)
+	loss2 = bce_loss(make_binary(d2),labels_v)
+	loss3 = bce_loss(make_binary(d3),labels_v)
+	loss4 = bce_loss(make_binary(d4),labels_v)
+	loss5 = bce_loss(make_binary(d5),labels_v)
+	loss6 = bce_loss(make_binary(d6),labels_v)
 
 	loss = loss0 + loss1 + loss2 + loss3 + loss4 + loss5 + loss6
 	#print("l0: %3f, l1: %3f, l2: %3f, l3: %3f, l4: %3f, l5: %3f, l6: %3f\n"%(loss0.data.item(),loss1.data.item(),loss2.data.item(),loss3.data.item(),loss4.data.item(),loss5.data.item(),loss6.data.item()))
@@ -215,6 +222,7 @@ for epoch in range(epoch_start, epoch_num):
         optimizer.zero_grad()
         d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
         loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
+        
 
         loss.backward()
         optimizer.step()
