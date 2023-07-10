@@ -42,8 +42,8 @@ def calculate_iou(mask1, mask2):
     return iou
 
 # ------- 1. define loss function --------
-bce_loss = nn.BCELoss(size_average=True)
-
+#bce_loss = nn.BCELoss(size_average=True)
+bce_loss = nn.BCEWithLogitsLoss(size_average=True)
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
     criterion = nn.BCEWithLogitsLoss()
 
@@ -167,7 +167,7 @@ if torch.cuda.is_available():
 print("---define optimizer...")
 
 optimizer = optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
-
+scaler = GradScaler(enabled=True)
 epoch_start = 0
 
 if resume:
@@ -176,6 +176,7 @@ if resume:
     checkpoint = torch.load('best.pth')
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    #scaler.load_state_dict(checkpoint['scaler'])
     epoch_start = checkpoint['epoch']
     avg_val_loss = checkpoint['avg_val_loss']
     #print(f"Resuming from epoch {epoch_start} with avg loss {avg_val_loss:.3f}")
@@ -189,7 +190,7 @@ running_loss = 0.0
 running_tar_loss = 0.0
 num_iterations = len(train_loader) 
 
-#scaler = GradScaler()
+torch.backends.cudnn.benchmark = True
 for epoch in range(epoch_start, epoch_num):
     print('Epoch {}/{}'.format(epoch+1, epoch_num))
 
@@ -208,19 +209,20 @@ for epoch in range(epoch_start, epoch_num):
             inputs_v = Variable(inputs, requires_grad=False)
             labels_v = Variable(labels, requires_grad=False)
 
-        optimizer.zero_grad()
-        d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
-        loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
+        optimizer.zero_grad(set_to_none=True)
+        # d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
+        # loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
 
-        loss.backward()
-        optimizer.step()
-        # with autocast():
-        #     d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
-        #     loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
+        # loss.backward()
+        # optimizer.step()
+        with autocast(enabled=True):
+            d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
+            loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
 
-        # scaler.scale(loss).backward()
-        # scaler.step(optimizer)
-        # scaler.update()
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+        optimizer.zero_grad(set_to_none=True)
         running_loss += loss.data.item()
         train_loader.set_postfix({'Loss': loss.data.item()})
         del d0, d1, d2, d3, d4, d5, d6, loss2, loss
@@ -263,6 +265,7 @@ for epoch in range(epoch_start, epoch_num):
             'epoch': epoch,
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
+            "scaler": scaler.state_dict(),
             'avg_val_loss': avg_val_loss,
         }, PATH)
         print(f"saved best model: {avg_val_loss}!")
@@ -274,6 +277,7 @@ for epoch in range(epoch_start, epoch_num):
         'epoch': epoch,
         'model_state_dict': net.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
+        "scaler": scaler.state_dict(),
         'avg_val_loss': avg_val_loss,
     }, PATH)
     print("saved last model")
