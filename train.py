@@ -23,6 +23,7 @@ from model import U2NET
 from model import U2NETP
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 #bce_loss = nn.BCEWithLogitsLoss(size_average=True)
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
@@ -50,7 +51,6 @@ model_dir = os.path.join(
     model_name + os.sep
 )
 
-epoch_num = 100
 batch_size_train = 8
 batch_size_val = 1
 train_num = 0
@@ -133,23 +133,43 @@ elif(model_name=='u2netp'):
 if torch.cuda.is_available():
     net.cuda()
 
+resume = True
 # ------- 4. define optimizer --------
 print("---define optimizer...")
-optimizer = optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
+optimizer = optim.Adam(
+    net.parameters(), 
+    lr=0.001,
+    betas=(0.9, 0.999),
+    eps=1e-08,
+    weight_decay=0
+)
 scaler = torch.cuda.amp.GradScaler(enabled=True)
 epoch_start = 0
+
+if resume:
+    checkpoint = torch.load("best.pth")
+    net.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    scaler.load_state_dict(checkpoint['scaler'])
+    epoch_start = checkpoint['epoch']
+    avg_train_loss = checkpoint['avg_train_loss']
+    print("loaded last model")
+    print("epoch: ", epoch_start)
+    print("avg_train_loss: ", avg_train_loss)
 
 import time    
 # ------- 5. training process --------
 print("---start training...")
-running_loss = 0.0
-num_iterations = len(train_loader) 
 
-#torch.backends.cudnn.benchmark = True
-for epoch in range(epoch_start, epoch_num):
-    total_train_loss = 0
+
+EPOCHS = 100
+
+for epoch in range(epoch_start, EPOCHS):
+    running_train_loss = 0
+    num_iterations = len(train_loader) 
+
     start_time = time.time()
-    print('Epoch {}/{}'.format(epoch+1, epoch_num))
+    print('EPOCH {}/{}'.format(epoch+1, EPOCHS))
 
     # TRAINING
     net.train()
@@ -166,42 +186,82 @@ for epoch in range(epoch_start, epoch_num):
             inputs_v = Variable(inputs, requires_grad=False)
             labels_v = Variable(labels, requires_grad=False)
         
-        """
-        optimizer.zero_grad() #set_to_none=True
-        d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
-        loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
 
-        loss.backward()
-        optimizer.step()
-        """
         optimizer.zero_grad()
         with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=True):
             d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
             loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
+        
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
         optimizer.zero_grad(set_to_none=True)
-        # scaler.scale(loss).backward()
-        # scaler.step(optimizer)
-        # scaler.update()
-        # optimizer.zero_grad(set_to_none=True)
-        running_loss += loss.data.item()
+
+        running_train_loss += loss.data.item()
         train_loader.set_postfix({'Loss': loss.data.item()})
         del d0, d1, d2, d3, d4, d5, d6, loss2, loss
     
-    avg_loss = running_loss / num_iterations
-    running_loss = 0.0
-    print(f'Epoch: {epoch+1} | Average Training Loss: {avg_loss:.4f}')
+    avg_train_loss = running_train_loss / num_iterations
+    #running_train_loss = 0
+
+    
+    print(f'Epoch: {epoch+1} | Average Training Loss: {avg_train_loss:.4f}')
+    print(f'Time taken: {time.time() - start_time:.2f}s')
+    
+    # VALIDATION
+    net.eval()
+    running_val_loss = 0
+    best_avg_val_loss = 10000
+    num_iterations = len(val_loader)
+    val_loader = tqdm(val_loader, total=num_iterations)
+
+    start_time = time.time()
+    with torch.no_grad():
+        for i, data in enumerate(val_loader):
+            inputs, labels = data['image'], data['label']
+            inputs = inputs.type(torch.FloatTensor)
+            labels = labels.type(torch.FloatTensor)
+
+            if torch.cuda.is_available():
+                inputs_v = Variable(inputs.cuda(), requires_grad=False)
+                labels_v = Variable(labels.cuda(), requires_grad=False)
+            else:
+                inputs_v = Variable(inputs, requires_grad=False)
+                labels_v = Variable(labels, requires_grad=False)
+            
+            d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
+            loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
+            
+            running_val_loss += loss.data.item()
+            val_loader.set_postfix({'Loss': loss.data.item()})
+
+            del d0, d1, d2, d3, d4, d5, d6, loss2, loss
+
+    avg_val_loss = running_val_loss / num_iterations
+    print(f'Epoch: {epoch+1} | Average Validation Loss: {avg_val_loss:.4f}')
     print(f'Time taken: {time.time() - start_time:.2f}s')
 
-    PATH=model_dir + model_name+"_last.pth"  #_{avg_val_loss}
+    if avg_val_loss < best_avg_val_loss:
+        best_avg_val_loss = avg_val_loss
+        PATH = model_dir + model_name+"_best.pth"
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': net.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            "scaler": scaler.state_dict(),
+            'avg_train_loss': avg_train_loss,
+            'avg_val_loss': avg_val_loss,
+        }, PATH)
+        print("saved best model")
+
+    PATH = model_dir + model_name+"_last.pth"
     torch.save({
         'epoch': epoch,
         'model_state_dict': net.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-        #"scaler": scaler.state_dict(),
-        #'avg_val_loss': avg_val_loss,
+        "scaler": scaler.state_dict(),
+        'avg_train_loss': avg_train_loss,
+        'avg_val_loss': avg_val_loss,
     }, PATH)
     print("saved last model")
 
