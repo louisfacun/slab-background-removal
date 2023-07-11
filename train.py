@@ -147,7 +147,8 @@ scaler = torch.cuda.amp.GradScaler(enabled=True)
 epoch_start = 0
 
 if resume:
-    checkpoint = torch.load("best.pth")
+    #checkpoint = torch.load("best.pth")
+    checkpoint = torch.load(model_dir + model_name+"_best.pth")
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     scaler.load_state_dict(checkpoint['scaler'])
