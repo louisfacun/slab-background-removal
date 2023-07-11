@@ -134,7 +134,7 @@ elif(model_name=='u2netp'):
 if torch.cuda.is_available():
     net.cuda()
 
-resume = True
+resume = False
 # ------- 4. define optimizer --------
 print("---define optimizer...")
 optimizer = optim.Adam(
@@ -155,9 +155,11 @@ if resume:
     scaler.load_state_dict(checkpoint['scaler'])
     epoch_start = checkpoint['epoch']-1
     avg_train_loss = checkpoint['avg_train_loss']
+    avg_val_loss = checkpoint['avg_val_loss']
     print("loaded last model")
     print("epoch: ", epoch_start)
     print("avg_train_loss: ", avg_train_loss)
+    print("avg_val_loss: ", avg_val_loss)
 
 import time    
 # ------- 5. training process --------
