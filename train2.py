@@ -1,6 +1,5 @@
 import os
 import torch
-import torchvision
 from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
@@ -11,7 +10,6 @@ import torchvision.transforms as standard_transforms
 from torch.utils.data import random_split
 import numpy as np
 import glob
-import os
 from data_loader import Rescale
 from data_loader import RescaleT
 from data_loader import RandomCrop
@@ -149,17 +147,19 @@ epoch_start = 0
 
 if resume:
     #checkpoint = torch.load("best.pth")
-    checkpoint = torch.load(model_dir + model_name+"_best.pth")
-    net.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    scaler.load_state_dict(checkpoint['scaler'])
-    epoch_start = checkpoint['epoch']-1
-    avg_train_loss = checkpoint['avg_train_loss']
-    avg_val_loss = checkpoint['avg_val_loss']
-    print("loaded last model")
-    print("epoch: ", epoch_start)
-    print("avg_train_loss: ", avg_train_loss)
-    print("avg_val_loss: ", avg_val_loss)
+    checkpoint = torch.load("u2net_bce_itr_7800_train_0.093630_tar_0.011165.pth")
+    net.load_state_dict(checkpoint)
+    #checkpoint = torch.load(model_dir + model_name+"_best.pth")
+    #net.load_state_dict(checkpoint['model_state_dict'])
+    # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    # scaler.load_state_dict(checkpoint['scaler'])
+    # epoch_start = checkpoint['epoch']-1
+    # avg_train_loss = checkpoint['avg_train_loss']
+    # avg_val_loss = checkpoint['avg_val_loss']
+    # print("loaded last model")
+    # print("epoch: ", epoch_start)
+    # print("avg_train_loss: ", avg_train_loss)
+    # print("avg_val_loss: ", avg_val_loss)
 
 import time    
 # ------- 5. training process --------
@@ -191,7 +191,6 @@ for epoch in range(epoch_start, EPOCHS):
             inputs_v = Variable(inputs, requires_grad=False)
             labels_v = Variable(labels, requires_grad=False)
         
-
         #optimizer.zero_grad()
         with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=True):
             d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
@@ -208,7 +207,6 @@ for epoch in range(epoch_start, EPOCHS):
     
     avg_train_loss = running_train_loss / num_iterations
     #running_train_loss = 0
-
     
     print(f'Epoch: {epoch+1} | Average Training Loss: {avg_train_loss:.4f}')
     print(f'Time taken: {time.time() - start_time:.2f}s')
