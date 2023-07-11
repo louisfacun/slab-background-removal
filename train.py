@@ -150,7 +150,7 @@ if resume:
     checkpoint = torch.load("best.pth")
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    scaler.load_state_dict(checkpoint['scaler'])
+    #scaler.load_state_dict(checkpoint['scaler'])
     epoch_start = checkpoint['epoch']
     avg_train_loss = checkpoint['avg_train_loss']
     print("loaded last model")
