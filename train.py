@@ -144,11 +144,11 @@ optimizer = optim.Adam(
     eps=1e-08,
     weight_decay=0
 )
-scaler = torch.cuda.amp.GradScaler(enabled=True)
+#scaler = torch.cuda.amp.GradScaler(enabled=True)
 epoch_start = 0
 
 if resume:
-    checkpoint = torch.load("best.pth")
+    checkpoint = torch.load("u2net_bce_itr_7800_train_0.093630_tar_0.011165.pth")
     net.load(checkpoint)
     #checkpoint = torch.load(model_dir + model_name+"_best.pth")
     #net.load_state_dict(checkpoint['model_state_dict'])
