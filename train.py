@@ -150,12 +150,12 @@ if resume:
     checkpoint = torch.load("best.pth")
     net.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    #scaler.load_state_dict(checkpoint['scaler'])
+    scaler.load_state_dict(checkpoint['scaler'])
     epoch_start = checkpoint['epoch']
-    #avg_train_loss = checkpoint['avg_train_loss']
+    avg_train_loss = checkpoint['avg_train_loss']
     print("loaded last model")
     print("epoch: ", epoch_start)
-    #print("avg_train_loss: ", avg_train_loss)
+    print("avg_train_loss: ", avg_train_loss)
 
 import time    
 # ------- 5. training process --------
@@ -164,6 +164,7 @@ print("---start training...")
 
 EPOCHS = 100
 
+best_avg_val_loss = 10000
 for epoch in range(epoch_start, EPOCHS):
     running_train_loss = 0
     num_iterations = len(train_loader) 
@@ -211,7 +212,6 @@ for epoch in range(epoch_start, EPOCHS):
     # VALIDATION
     net.eval()
     running_val_loss = 0
-    best_avg_val_loss = 10000
     num_iterations = len(val_loader)
     val_loader = tqdm(val_loader, total=num_iterations)
 
