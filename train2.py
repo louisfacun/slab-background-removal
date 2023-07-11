@@ -17,7 +17,7 @@ from data_loader import ToTensor
 from data_loader import ToTensorLab
 from data_loader import SalObjDataset
 from data_loader import Augment
-from model import U2NET
+from model import U2NET2
 from model import U2NETP
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
@@ -125,7 +125,7 @@ val_loader = DataLoader(
 resume = True
 # define the net
 if(model_name=='u2net'):
-    net = U2NET(3, 1)
+    net = U2NET2(3, 1)
     net = nn.DataParallel(net)#.to(device)
 elif(model_name=='u2netp'):
     net = U2NETP(3,1)
