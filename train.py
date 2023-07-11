@@ -174,7 +174,7 @@ for epoch in range(epoch_start, epoch_num):
         optimizer.step()
         """
         optimizer.zero_grad()
-        with torch.autocast():
+        with torch.autocast(device_type='cuda'):
             d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
             loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
         loss.backward()
@@ -190,7 +190,7 @@ for epoch in range(epoch_start, epoch_num):
     avg_loss = running_loss / num_iterations
     print(f'Epoch: {epoch+1} | Average Training Loss: {avg_loss:.4f}')
     print(f'Time taken: {time.time() - start_time:.2f}s')
-    
+
     PATH=model_dir + model_name+"_last.pth"  #_{avg_val_loss}
     torch.save({
         'epoch': epoch,
