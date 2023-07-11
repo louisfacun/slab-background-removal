@@ -213,7 +213,7 @@ for epoch in range(epoch_start, EPOCHS):
     # VALIDATION
     net.eval()
     running_val_loss = 0
-    num_iterations = len(val_loader)
+
     val_loader = tqdm(val_loader, total=num_iterations)
 
     start_time = time.time()
@@ -238,7 +238,7 @@ for epoch in range(epoch_start, EPOCHS):
 
             del d0, d1, d2, d3, d4, d5, d6, loss2, loss
 
-    avg_val_loss = running_val_loss / num_iterations
+    avg_val_loss = running_val_loss / val_num
     print(f'Epoch: {epoch+1} | Average Validation Loss: {avg_val_loss:.4f}')
     print(f'Time taken: {time.time() - start_time:.2f}s')
 
