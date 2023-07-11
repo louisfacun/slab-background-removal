@@ -24,9 +24,9 @@ from model import U2NETP
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 
-#bce_loss = nn.BCELoss(size_average=True)
-bce_loss = nn.BCEWithLogitsLoss(size_average=True)
+#bce_loss = nn.BCEWithLogitsLoss(size_average=True)
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
+    bce_loss = nn.BCELoss(size_average=True)
     loss0 = bce_loss(d0, labels_v)
     loss1 = bce_loss(d1, labels_v)
     loss2 = bce_loss(d2, labels_v)
@@ -138,7 +138,8 @@ print("---define optimizer...")
 optimizer = optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
 #scaler = GradScaler(enabled=True)
 epoch_start = 0
-    
+
+import time    
 # ------- 5. training process --------
 print("---start training...")
 running_loss = 0.0
@@ -146,6 +147,7 @@ num_iterations = len(train_loader)
 
 #torch.backends.cudnn.benchmark = True
 for epoch in range(epoch_start, epoch_num):
+    start_time = time.time()
     print('Epoch {}/{}'.format(epoch+1, epoch_num))
 
     # TRAINING
@@ -162,7 +164,7 @@ for epoch in range(epoch_start, epoch_num):
         else:
             inputs_v = Variable(inputs, requires_grad=False)
             labels_v = Variable(labels, requires_grad=False)
-        optimizer.zero_grad()
+        
         """
         optimizer.zero_grad() #set_to_none=True
         d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
@@ -171,7 +173,8 @@ for epoch in range(epoch_start, epoch_num):
         loss.backward()
         optimizer.step()
         """
-        with autocast():
+        optimizer.zero_grad()
+        with torch.autocast():
             d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
             loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
         loss.backward()
@@ -186,14 +189,15 @@ for epoch in range(epoch_start, epoch_num):
 
     avg_loss = running_loss / num_iterations
     print(f'Epoch: {epoch+1} | Average Training Loss: {avg_loss:.4f}')
-
+    print(f'Time taken: {time.time() - start_time:.2f}s')
+    
     PATH=model_dir + model_name+"_last.pth"  #_{avg_val_loss}
     torch.save({
         'epoch': epoch,
         'model_state_dict': net.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
         #"scaler": scaler.state_dict(),
-        'avg_val_loss': avg_val_loss,
+        #'avg_val_loss': avg_val_loss,
     }, PATH)
     print("saved last model")
 
