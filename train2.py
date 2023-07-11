@@ -132,7 +132,7 @@ elif(model_name=='u2netp'):
 if torch.cuda.is_available():
     net.cuda()
 
-resume = False
+resume = True
 # ------- 4. define optimizer --------
 print("---define optimizer...")
 optimizer = optim.Adam(
