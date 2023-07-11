@@ -149,10 +149,10 @@ epoch_start = 0
 
 if resume:
     checkpoint = torch.load("u2net_bce_itr_7800_train_0.093630_tar_0.011165.pth")
-    net.load(checkpoint)
+    #net.load(checkpoint)
     #checkpoint = torch.load(model_dir + model_name+"_best.pth")
-    #net.load_state_dict(checkpoint['model_state_dict'])
-    #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    net.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     #scaler.load_state_dict(checkpoint['scaler'])
     #epoch_start = checkpoint['epoch']
     #avg_train_loss = checkpoint['avg_train_loss']
