@@ -27,7 +27,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 #bce_loss = nn.BCEWithLogitsLoss(size_average=True)
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
-    bce_loss = nn.BCEWithLogitsLoss(size_average=True)
+    #bce_loss = nn.BCEWithLogitsLoss(size_average=True)
+    bce_loss = nn.BCELoss(size_average=True)
     loss0 = bce_loss(d0, labels_v)
     loss1 = bce_loss(d1, labels_v)
     loss2 = bce_loss(d2, labels_v)
@@ -147,35 +148,35 @@ scaler = torch.cuda.amp.GradScaler(enabled=True)
 epoch_start = 0
 
 if resume:
-    #checkpoint = torch.load("best.pth")
-    checkpoint = torch.load(model_dir + model_name+"_best.pth")
-    net.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    scaler.load_state_dict(checkpoint['scaler'])
-    epoch_start = checkpoint['epoch']
-    avg_train_loss = checkpoint['avg_train_loss']
+    checkpoint = torch.load("best.pth")
+    net.load(checkpoint)
+    #checkpoint = torch.load(model_dir + model_name+"_best.pth")
+    #net.load_state_dict(checkpoint['model_state_dict'])
+    #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    #scaler.load_state_dict(checkpoint['scaler'])
+    #epoch_start = checkpoint['epoch']
+    #avg_train_loss = checkpoint['avg_train_loss']
     print("loaded last model")
-    print("epoch: ", epoch_start)
-    print("avg_train_loss: ", avg_train_loss)
+    #print("epoch: ", epoch_start)
+    #print("avg_train_loss: ", avg_train_loss)
 
 import time    
 # ------- 5. training process --------
 print("---start training...")
 
-
 EPOCHS = 100
-
 best_avg_val_loss = 10000
-for epoch in range(epoch_start, EPOCHS):
-    running_train_loss = 0
-    num_iterations = len(train_loader) 
+train_num_iterations = len(train_loader)
+val_num_iterations = len(val_loader)
 
+for epoch in range(epoch_start, EPOCHS):
     start_time = time.time()
     print('EPOCH {}/{}'.format(epoch+1, EPOCHS))
 
     # TRAINING
     net.train()
-    train_loader = tqdm(train_loader, total=num_iterations)
+    running_train_loss = 0
+    train_loader = tqdm(train_loader, total=train_num_iterations)
     for i, data in enumerate(train_loader):
         inputs, labels = data['image'], data['label']
         inputs = inputs.type(torch.FloatTensor)
@@ -188,24 +189,19 @@ for epoch in range(epoch_start, EPOCHS):
             inputs_v = Variable(inputs, requires_grad=False)
             labels_v = Variable(labels, requires_grad=False)
         
-
         optimizer.zero_grad()
-        with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=True):
-            d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
-            loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
+
+        d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
+        loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
         
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
-        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
 
         running_train_loss += loss.data.item()
         train_loader.set_postfix({'Loss': loss.data.item()})
         del d0, d1, d2, d3, d4, d5, d6, loss2, loss
     
-    avg_train_loss = running_train_loss / num_iterations
-    #running_train_loss = 0
-
+    avg_train_loss = running_train_loss / train_num_iterations
     
     print(f'Epoch: {epoch+1} | Average Training Loss: {avg_train_loss:.4f}')
     print(f'Time taken: {time.time() - start_time:.2f}s')
@@ -213,9 +209,7 @@ for epoch in range(epoch_start, EPOCHS):
     # VALIDATION
     net.eval()
     running_val_loss = 0
-
-    val_loader = tqdm(val_loader, total=num_iterations)
-
+    val_loader = tqdm(val_loader, total=val_num_iterations)
     start_time = time.time()
     with torch.no_grad():
         for i, data in enumerate(val_loader):
@@ -238,7 +232,8 @@ for epoch in range(epoch_start, EPOCHS):
 
             del d0, d1, d2, d3, d4, d5, d6, loss2, loss
 
-    avg_val_loss = running_val_loss / val_num
+    avg_val_loss = running_val_loss / val_num_iterations
+
     print(f'Epoch: {epoch+1} | Average Validation Loss: {avg_val_loss:.4f}')
     print(f'Time taken: {time.time() - start_time:.2f}s')
 
@@ -249,7 +244,7 @@ for epoch in range(epoch_start, EPOCHS):
             'epoch': epoch,
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
-            "scaler": scaler.state_dict(),
+            #"scaler": scaler.state_dict(),
             'avg_train_loss': avg_train_loss,
             'avg_val_loss': avg_val_loss,
         }, PATH)
@@ -260,7 +255,7 @@ for epoch in range(epoch_start, EPOCHS):
         'epoch': epoch,
         'model_state_dict': net.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-        "scaler": scaler.state_dict(),
+        #"scaler": scaler.state_dict(),
         'avg_train_loss': avg_train_loss,
         'avg_val_loss': avg_val_loss,
     }, PATH)
