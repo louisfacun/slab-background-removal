@@ -39,7 +39,7 @@ def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
 
 # ------- 2. set the directory of training dataset --------
 model_name = 'u2net' #'u2netp'
-data_dir = os.path.join(os.getcwd(), 'train_data_orig' + os.sep)
+data_dir = os.path.join(os.getcwd(), 'train_data' + os.sep)
 tra_image_dir = os.path.join('JUTS', 'images' + os.sep)
 tra_label_dir = os.path.join('JUTS', 'masks' + os.sep)
 image_ext = '.jpg'
@@ -92,7 +92,7 @@ train_set = SalObjDataset(
     img_name_list=train_images,
     lbl_name_list=train_masks,
     transform = transforms.Compose([
-        RescaleT(572),
+        RescaleT(640),
         #Augment(),
         ToTensorLab(flag=0)
     ])
@@ -110,7 +110,7 @@ val_set = SalObjDataset(
     img_name_list=val_images,
     lbl_name_list=val_masks,
     transform = transforms.Compose([
-        RescaleT(572),
+        RescaleT(640),
         ToTensorLab(flag=0)
     ])
 )
@@ -147,7 +147,7 @@ epoch_start = 0
 
 if resume:
     #checkpoint = torch.load("best.pth")
-    checkpoint = torch.load("u2net_bce_itr_7800_train_0.093630_tar_0.011165.pth")
+    checkpoint = torch.load(model_dir + model_name+"u2net_bce_itr_7800_train_0.093630_tar_0.011165.pth")
     net.load_state_dict(checkpoint)
     #checkpoint = torch.load(model_dir + model_name+"_best.pth")
     #net.load_state_dict(checkpoint['model_state_dict'])
