@@ -26,7 +26,7 @@ from sklearn.model_selection import train_test_split
 
 #bce_loss = nn.BCEWithLogitsLoss(size_average=True)
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
-    bce_loss = nn.BCELoss(size_average=True)
+    bce_loss = nn.BCEWithLogitsLoss(size_average=True)
     loss0 = bce_loss(d0, labels_v)
     loss1 = bce_loss(d1, labels_v)
     loss2 = bce_loss(d2, labels_v)
