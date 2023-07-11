@@ -50,7 +50,7 @@ model_dir = os.path.join(
     model_name + os.sep
 )
 
-batch_size_train = 8
+batch_size_train = 4
 batch_size_val = 1
 train_num = 0
 val_num = 0
