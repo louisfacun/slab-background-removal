@@ -152,10 +152,10 @@ if resume:
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     #scaler.load_state_dict(checkpoint['scaler'])
     epoch_start = checkpoint['epoch']
-    avg_train_loss = checkpoint['avg_train_loss']
+    #avg_train_loss = checkpoint['avg_train_loss']
     print("loaded last model")
     print("epoch: ", epoch_start)
-    print("avg_train_loss: ", avg_train_loss)
+    #print("avg_train_loss: ", avg_train_loss)
 
 import time    
 # ------- 5. training process --------
