@@ -147,7 +147,7 @@ epoch_start = 0
 
 if resume:
     #checkpoint = torch.load("best.pth")
-    checkpoint = torch.load(model_dir + model_name+"u2net_bce_itr_7800_train_0.093630_tar_0.011165.pth")
+    checkpoint = torch.load(model_dir + "u2net_bce_itr_7800_train_0.093630_tar_0.011165.pth")
     net.load_state_dict(checkpoint)
     #checkpoint = torch.load(model_dir + model_name+"_best.pth")
     #net.load_state_dict(checkpoint['model_state_dict'])
