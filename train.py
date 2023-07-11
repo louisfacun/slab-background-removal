@@ -136,7 +136,7 @@ if torch.cuda.is_available():
 # ------- 4. define optimizer --------
 print("---define optimizer...")
 optimizer = optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0)
-#scaler = GradScaler(enabled=True)
+scaler = torch.cuda.amp.GradScaler(enabled=True)
 epoch_start = 0
 
 import time    
@@ -174,11 +174,13 @@ for epoch in range(epoch_start, epoch_num):
         optimizer.step()
         """
         optimizer.zero_grad()
-        with torch.autocast(device_type='cuda'):
+        with torch.autocast(device_type='cuda', dtype=torch.float16, enabled=True):
             d0, d1, d2, d3, d4, d5, d6 = net(inputs_v)
             loss2, loss = muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v)
-        loss.backward()
-        optimizer.step()
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+        optimizer.zero_grad(set_to_none=True)
         # scaler.scale(loss).backward()
         # scaler.step(optimizer)
         # scaler.update()
