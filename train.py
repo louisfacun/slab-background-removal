@@ -147,6 +147,7 @@ num_iterations = len(train_loader)
 
 #torch.backends.cudnn.benchmark = True
 for epoch in range(epoch_start, epoch_num):
+    total_train_loss = 0
     start_time = time.time()
     print('Epoch {}/{}'.format(epoch+1, epoch_num))
 
@@ -188,8 +189,9 @@ for epoch in range(epoch_start, epoch_num):
         running_loss += loss.data.item()
         train_loader.set_postfix({'Loss': loss.data.item()})
         del d0, d1, d2, d3, d4, d5, d6, loss2, loss
-
+    
     avg_loss = running_loss / num_iterations
+    running_loss = 0.0
     print(f'Epoch: {epoch+1} | Average Training Loss: {avg_loss:.4f}')
     print(f'Time taken: {time.time() - start_time:.2f}s')
 
