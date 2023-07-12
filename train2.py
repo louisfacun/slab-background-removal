@@ -112,19 +112,16 @@ epoch_start = 0
 
 if args.resume:
     checkpoint = torch.load(args.checkpoint)
-    #checkpoint = torch.load(model_path + "u2net_bce_itr_7800_train_0.093630_tar_0.011165.pth")
-    #net.load_state_dict(checkpoint)
-    #checkpoint = torch.load(model_dir + model_name+"_best.pth")
     net.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    scaler.load_state_dict(checkpoint['scaler'])
-    epoch_start = checkpoint['epoch']
-    avg_train_loss = checkpoint['avg_train_loss']
-    avg_val_loss = checkpoint['avg_val_loss']
+    #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    #scaler.load_state_dict(checkpoint['scaler'])
+    #epoch_start = checkpoint['epoch']
+    #avg_train_loss = checkpoint['avg_train_loss']
+    #avg_val_loss = checkpoint['avg_val_loss']
     print("loaded last model")
-    print("epoch: ", epoch_start)
-    print("avg_train_loss: ", avg_train_loss)
-    print("avg_val_loss: ", avg_val_loss)
+    #print("epoch: ", epoch_start)
+    #print("avg_train_loss: ", avg_train_loss)
+    #print("avg_val_loss: ", avg_val_loss)
 
    
 # ------- 5. training process --------
@@ -207,7 +204,8 @@ for epoch in range(epoch_start, EPOCHS):
 
     if avg_val_loss < best_avg_val_loss:
         best_avg_val_loss = avg_val_loss
-        PATH = model_path + model_name+"_best.pth"
+        # join model path posix path to str model name and best.pth
+        PATH = model_path / (model_name + "_best.pth")
         torch.save({
             'epoch': epoch,
             'model_state_dict': net.state_dict(),
@@ -218,7 +216,7 @@ for epoch in range(epoch_start, EPOCHS):
         }, PATH)
         print("saved best model")
 
-    PATH = model_path + model_name+"_last.pth"
+    PATH = model_path / (model_name + "_last.pth")
     torch.save({
         'epoch': epoch,
         'model_state_dict': net.state_dict(),
