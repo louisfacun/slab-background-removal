@@ -1,31 +1,33 @@
-import os
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, utils
+from torch.utils.data import DataLoader
+from torchvision import transforms
 import torch.optim as optim
-import torchvision.transforms as standard_transforms
 from torch.utils.data import random_split
 import numpy as np
 import glob
-from data_loader import Rescale
 from data_loader import RescaleT
-from data_loader import RandomCrop
-from data_loader import ToTensor
 from data_loader import ToTensorLab
 from data_loader import SalObjDataset
-from data_loader import Augment
 from model import U2NET2
-from model import U2NETP
 from tqdm import tqdm
-from sklearn.model_selection import train_test_split
-from torch.nn.parallel import DistributedDataParallel as DDP
+from pathlib import Path
+import argparse
+import time
 
-#bce_loss = nn.BCEWithLogitsLoss(size_average=True)
+# create argparse value for batch size and epochs
+parser = argparse.ArgumentParser()
+parser.add_argument('--batch_size', type=int, default=4)
+parser.add_argument('--epochs', type=int, default=100)
+# add resume true or false as an action
+# add checkpont file location argument
+parser.add_argument('--checkpoint', type=str, default='best.pth')
+parser.add_argument('--resume', type=bool, default=True)
+args = parser.parse_args()
+
+# ------- 1. define loss function --------
 def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
-    #bce_loss = nn.BCELoss(size_average=True)
     bce_loss = nn.BCEWithLogitsLoss(size_average=True)
     loss0 = bce_loss(d0, labels_v)
     loss1 = bce_loss(d1, labels_v)
@@ -38,73 +40,39 @@ def muti_bce_loss_fusion(d0, d1, d2, d3, d4, d5, d6, labels_v):
     return loss0, loss
 
 # ------- 2. set the directory of training dataset --------
-model_name = 'u2net' #'u2netp'
-data_dir = os.path.join(os.getcwd(), 'train_data' + os.sep)
-tra_image_dir = os.path.join('JUTS', 'images' + os.sep)
-tra_label_dir = os.path.join('JUTS', 'masks' + os.sep)
-image_ext = '.jpg'
-label_ext = '.jpg'
-model_dir = os.path.join(
-    os.getcwd(), 
-    'saved_models', 
-    model_name + os.sep
-)
+model_name = 'u2net'
 
-batch_size_train = 4
+model_path = Path('saved_models', model_name)
+data_path = Path('data', 'slabs')
+train_image_path = data_path / 'images'
+train_mask_path = data_path / 'masks'
+val_image_path = data_path / 'images'
+val_mask_path = data_path / 'masks'
+
+batch_size_train = args.batch_size
 batch_size_val = 1
-train_num = 0
-val_num = 0
+EPOCHS = args.epochs
 
-# LOAD TRAINING IMAGES AND MASKS PATHS
-tra_img_name_list = glob.glob(data_dir + tra_image_dir + '*' + image_ext)
-tra_lbl_name_list = []
-for img_path in tra_img_name_list:
-	img_name = img_path.split(os.sep)[-1]
-	aaa = img_name.split(".")
-	bbb = aaa[0:-1]
-	imidx = bbb[0]
-	for i in range(1,len(bbb)):
-		imidx = imidx + "." + bbb[i]
-	tra_lbl_name_list.append(data_dir + tra_label_dir + imidx + label_ext)
-
-print("---")
-print("images: ", len(tra_img_name_list))
-print("masks: ", len(tra_lbl_name_list))
-print("---")
-
-train_images, val_images, train_masks, val_masks = train_test_split(
-    tra_img_name_list,
-    tra_lbl_name_list,
-    test_size=0.20,
-    random_state=100
-)
-print("---")
-print("train_images: ", len(train_images))
-print("train_masks: ", len(train_masks))
-print("---")
-print("val_images: ", len(val_images))
-print("val_masks: ", len(val_masks))
-print("---")
-
-train_num = len(train_images)
+# LOAD TRAINING VAL IMAGES AND MASKS PATHS
+train_images = glob.glob(str(train_image_path / '*.jpg'))
+train_masks = glob.glob(str(train_mask_path / '*.png'))
+val_images = glob.glob(str(val_image_path / '*.jpg'))
+val_masks = glob.glob(str(val_mask_path / '*.png'))
 
 train_set = SalObjDataset(
     img_name_list=train_images,
     lbl_name_list=train_masks,
     transform = transforms.Compose([
         RescaleT(640),
-        #Augment(),
         ToTensorLab(flag=0)
     ])
 )
-
 train_loader = DataLoader(
     train_set,
     batch_size=batch_size_train,
     shuffle=True,
     num_workers=2
 )
-
 val_num = len(val_images)
 val_set = SalObjDataset(
     img_name_list=val_images,
@@ -120,19 +88,18 @@ val_loader = DataLoader(
     shuffle=False,
     num_workers=2,
 )
+# print total training and validation data size
+print("Train: ", len(train_set))
+print("Val: ", len(val_set))
 
 # ------- 3. define model --------
-resume = True
-# define the net
-if(model_name=='u2net'):
-    net = U2NET2(3, 1)
-    net = nn.DataParallel(net)#.to(device)
-elif(model_name=='u2netp'):
-    net = U2NETP(3,1)
+net = U2NET2(3, 1)
+net = nn.DataParallel(net)
+
 if torch.cuda.is_available():
     net.cuda()
 
-resume = True
+
 # ------- 4. define optimizer --------
 print("---define optimizer...")
 optimizer = optim.Adam(
@@ -145,28 +112,25 @@ optimizer = optim.Adam(
 scaler = torch.cuda.amp.GradScaler(enabled=True)
 epoch_start = 0
 
-if resume:
-    #checkpoint = torch.load("best.pth")
-    checkpoint = torch.load(model_dir + "u2net_bce_itr_7800_train_0.093630_tar_0.011165.pth")
-    net.load_state_dict(checkpoint)
+if args.resume:
+    checkpoint = torch.load(args.checkpoint)
+    #checkpoint = torch.load(model_path + "u2net_bce_itr_7800_train_0.093630_tar_0.011165.pth")
+    #net.load_state_dict(checkpoint)
     #checkpoint = torch.load(model_dir + model_name+"_best.pth")
-    #net.load_state_dict(checkpoint['model_state_dict'])
-    # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    # scaler.load_state_dict(checkpoint['scaler'])
-    # epoch_start = checkpoint['epoch']-1
-    # avg_train_loss = checkpoint['avg_train_loss']
-    # avg_val_loss = checkpoint['avg_val_loss']
-    # print("loaded last model")
-    # print("epoch: ", epoch_start)
-    # print("avg_train_loss: ", avg_train_loss)
-    # print("avg_val_loss: ", avg_val_loss)
+    net.load_state_dict(checkpoint['model_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    scaler.load_state_dict(checkpoint['scaler'])
+    epoch_start = checkpoint['epoch']-1
+    avg_train_loss = checkpoint['avg_train_loss']
+    avg_val_loss = checkpoint['avg_val_loss']
+    print("loaded last model")
+    print("epoch: ", epoch_start)
+    print("avg_train_loss: ", avg_train_loss)
+    print("avg_val_loss: ", avg_val_loss)
 
-import time    
+   
 # ------- 5. training process --------
 print("---start training...")
-
-
-EPOCHS = 100
 
 best_avg_val_loss = 10000
 for epoch in range(epoch_start, EPOCHS):
@@ -245,7 +209,7 @@ for epoch in range(epoch_start, EPOCHS):
 
     if avg_val_loss < best_avg_val_loss:
         best_avg_val_loss = avg_val_loss
-        PATH = model_dir + model_name+"_best.pth"
+        PATH = model_path + model_name+"_best.pth"
         torch.save({
             'epoch': epoch,
             'model_state_dict': net.state_dict(),
@@ -256,7 +220,7 @@ for epoch in range(epoch_start, EPOCHS):
         }, PATH)
         print("saved best model")
 
-    PATH = model_dir + model_name+"_last.pth"
+    PATH = model_path + model_name+"_last.pth"
     torch.save({
         'epoch': epoch,
         'model_state_dict': net.state_dict(),
