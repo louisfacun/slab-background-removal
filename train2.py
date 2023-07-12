@@ -51,10 +51,10 @@ batch_size_val = 1
 EPOCHS = args.epochs
 
 # LOAD TRAINING VAL IMAGES AND MASKS PATHS
-train_images = glob.glob(str(train_image_path / '*.jpg'))
-train_masks = glob.glob(str(train_mask_path / '*.png'))
-val_images = glob.glob(str(val_image_path / '*.jpg'))
-val_masks = glob.glob(str(val_mask_path / '*.png'))
+train_images = sorted(glob.glob(str(train_image_path / '*.jpg')))
+train_masks = sorted(glob.glob(str(train_mask_path / '*.png')))
+val_images = sorted(glob.glob(str(val_image_path / '*.jpg')))
+val_masks = sorted(glob.glob(str(val_mask_path / '*.png')))
 
 print("Train: ", len(train_images))
 print("Val: ", len(val_images))
