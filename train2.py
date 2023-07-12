@@ -51,13 +51,16 @@ batch_size_val = 1
 EPOCHS = args.epochs
 
 # LOAD TRAINING VAL IMAGES AND MASKS PATHS
+# print info maybe using logger or print
+print("Loading training and validation images and masks...")
+print("train_image_path: ", train_image_path)
+print("train_mask_path: ", train_mask_path)
+print("val_image_path: ", val_image_path)
+print("val_mask_path: ", val_mask_path)
 train_images = sorted(glob.glob(str(train_image_path / '*.jpg')))
 train_masks = sorted(glob.glob(str(train_mask_path / '*.png')))
 val_images = sorted(glob.glob(str(val_image_path / '*.jpg')))
 val_masks = sorted(glob.glob(str(val_mask_path / '*.png')))
-
-print("Train: ", len(train_images))
-print("Val: ", len(val_images))
 
 train_set = SalObjDataset(
     img_name_list=train_images,
@@ -88,15 +91,17 @@ val_loader = DataLoader(
     shuffle=False,
     num_workers=2,
 )
-# print total training and validation data size
+print("Loaded training and validation images and masks")
+print("Train: ", len(train_images))
+print("Val: ", len(val_images))
 
 # ------- 3. define model --------
+print("Loading model...")
 net = U2NET2(3, 1)
 net = nn.DataParallel(net)
 
 if torch.cuda.is_available():
     net.cuda()
-
 
 # ------- 4. define optimizer --------
 print("---define optimizer...")
@@ -111,6 +116,7 @@ scaler = torch.cuda.amp.GradScaler(enabled=True)
 epoch_start = 0
 
 if args.resume:
+    print("loading last model...")
     checkpoint = torch.load(args.checkpoint)
     net.load_state_dict(checkpoint['model_state_dict'])
     #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
