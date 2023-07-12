@@ -16,12 +16,9 @@ from pathlib import Path
 import argparse
 import time
 
-# create argparse value for batch size and epochs
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=4)
 parser.add_argument('--epochs', type=int, default=100)
-# add resume true or false as an action
-# add checkpont file location argument
 parser.add_argument('--checkpoint', type=str, default='best.pth')
 parser.add_argument('--resume', type=bool, default=True)
 args = parser.parse_args()
@@ -59,6 +56,9 @@ train_masks = glob.glob(str(train_mask_path / '*.png'))
 val_images = glob.glob(str(val_image_path / '*.jpg'))
 val_masks = glob.glob(str(val_mask_path / '*.png'))
 
+print("Train: ", len(train_images))
+print("Val: ", len(val_images))
+
 train_set = SalObjDataset(
     img_name_list=train_images,
     lbl_name_list=train_masks,
@@ -89,8 +89,6 @@ val_loader = DataLoader(
     num_workers=2,
 )
 # print total training and validation data size
-print("Train: ", len(train_set))
-print("Val: ", len(val_set))
 
 # ------- 3. define model --------
 net = U2NET2(3, 1)
