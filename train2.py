@@ -41,10 +41,10 @@ model_name = 'u2net'
 
 model_path = Path('saved_models', model_name)
 data_path = Path('data', 'slabs')
-train_image_path = data_path / 'images'
-train_mask_path = data_path / 'masks'
-val_image_path = data_path / 'images'
-val_mask_path = data_path / 'masks'
+train_image_path = data_path / 'train' / 'images'
+train_mask_path = data_path / 'train' / 'masks'
+val_image_path = data_path / 'val' /'images'
+val_mask_path = data_path / 'val' / 'masks'
 
 batch_size_train = args.batch_size
 batch_size_val = 1
