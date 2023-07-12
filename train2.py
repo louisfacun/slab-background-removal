@@ -179,8 +179,7 @@ for epoch in range(epoch_start, EPOCHS):
     # VALIDATION
     net.eval()
     running_val_loss = 0
-    
-    val_loader = tqdm(val_loader, total=num_iterations)
+    val_loader = tqdm(val_loader, total=val_num)
     
     start_time = time.time()
     with torch.no_grad():
