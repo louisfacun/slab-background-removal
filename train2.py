@@ -74,7 +74,7 @@ train_loader = DataLoader(
     train_set,
     batch_size=batch_size_train,
     shuffle=True,
-    num_workers=8,
+    num_workers=4,
     pin_memory=True,
 )
 val_num = len(val_images)
@@ -90,7 +90,7 @@ val_loader = DataLoader(
     val_set,
     batch_size=batch_size_val,
     shuffle=False,
-    num_workers=8,
+    num_workers=4,
     pin_memory=True,
 )
 print("Loaded training and validation images and masks")
