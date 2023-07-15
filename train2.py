@@ -74,7 +74,8 @@ train_loader = DataLoader(
     train_set,
     batch_size=batch_size_train,
     shuffle=True,
-    num_workers=2
+    num_workers=8,
+    pin_memory=True,
 )
 val_num = len(val_images)
 val_set = SalObjDataset(
@@ -89,7 +90,8 @@ val_loader = DataLoader(
     val_set,
     batch_size=batch_size_val,
     shuffle=False,
-    num_workers=2,
+    num_workers=8,
+    pin_memory=True,
 )
 print("Loaded training and validation images and masks")
 print("Train: ", len(train_images))
@@ -118,7 +120,7 @@ epoch_start = 0
 if args.resume:
     print("loading last model...")
     checkpoint = torch.load(args.checkpoint)
-    net.load_state_dict(checkpoint['model_state_dict'])
+    net.load_state_dict(checkpoint) #['model_state_dict']
     #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     #scaler.load_state_dict(checkpoint['scaler'])
     #epoch_start = checkpoint['epoch']
