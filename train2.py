@@ -107,20 +107,27 @@ if torch.cuda.is_available():
 
 # ------- 4. define optimizer --------
 print("---define optimizer...")
-optimizer = optim.Adam(
+optimizer = optim.AdamW(
     net.parameters(), 
     lr=0.001,
-    betas=(0.9, 0.999),
-    eps=1e-08,
-    weight_decay=0
+    # betas=(0.9, 0.999),
+    # eps=1e-08,
+    weight_decay=0.001,
 )
+scheduler = optim.lr_scheduler.OneCycleLR(
+    optimizer,
+    max_lr=0.01,
+    total_steps=EPOCHS*(len(train_loader)//batch_size_train)
+)
+
+
 scaler = torch.cuda.amp.GradScaler(enabled=True)
 epoch_start = 0
 
 if args.resume:
     print("loading last model...")
     checkpoint = torch.load(args.checkpoint)
-    net.load_state_dict(checkpoint) #['model_state_dict']
+    net.load_state_dict(checkpoint['model_state_dict']) #
     #optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     #scaler.load_state_dict(checkpoint['scaler'])
     #epoch_start = checkpoint['epoch']
@@ -168,6 +175,8 @@ for epoch in range(epoch_start, EPOCHS):
         scaler.update()
         optimizer.zero_grad(set_to_none=True)
 
+        scheduler.step()
+    
         running_train_loss += loss.data.item()
         train_loader.set_postfix({'Loss': loss.data.item()})
         del d0, d1, d2, d3, d4, d5, d6, loss2, loss
@@ -209,26 +218,30 @@ for epoch in range(epoch_start, EPOCHS):
     print(f'Epoch: {epoch+1} | Average Validation Loss: {avg_val_loss:.4f}')
     print(f'Time taken: {time.time() - start_time:.2f}s')
 
+  
+
     if avg_val_loss < best_avg_val_loss:
         best_avg_val_loss = avg_val_loss
         # join model path posix path to str model name and best.pth
-        PATH = model_path / (model_name + "_best.pth")
+        PATH = model_path / (model_name + "_best.tar")
         torch.save({
             'epoch': epoch,
             'model_state_dict': net.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             "scaler": scaler.state_dict(),
+            'scheduler': scheduler.state_dict(),
             'avg_train_loss': avg_train_loss,
             'avg_val_loss': avg_val_loss,
         }, PATH)
         print("saved best model")
 
-    PATH = model_path / (model_name + "_last.pth")
+    PATH = model_path / (model_name + "_last.tar")
     torch.save({
         'epoch': epoch,
         'model_state_dict': net.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
         "scaler": scaler.state_dict(),
+        'scheduler': scheduler.state_dict(),
         'avg_train_loss': avg_train_loss,
         'avg_val_loss': avg_val_loss,
     }, PATH)
