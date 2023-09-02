@@ -1,0 +1,1 @@
+# Stone Slabs Background Removal
